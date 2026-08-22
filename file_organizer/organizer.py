@@ -19,6 +19,34 @@ DEFAULT_CATEGORIES: Dict[str, List[str]] = {
     "video": [".mp4", ".avi", ".mkv", ".mov", ".wmv"],
 }
 
+DEFAULT_IGNORE_PATTERNS = [
+    ".git",
+    "__pycache__",
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",
+]
+
+
+def should_ignore(filename: str, ignore_patterns: List[str] = None) -> bool:
+    """
+    Check if a file should be ignored based on patterns.
+
+    Args:
+        filename: Name of the file to check
+        ignore_patterns: List of patterns to ignore
+
+    Returns:
+        True if the file should be ignored
+    """
+    if ignore_patterns is None:
+        ignore_patterns = DEFAULT_IGNORE_PATTERNS
+
+    for pattern in ignore_patterns:
+        if filename == pattern or filename.endswith(f"/{pattern}"):
+            return True
+    return False
+
 
 def get_category(filename: str, categories: Dict[str, List[str]] = None) -> str:
     """Determine the category for a file based on its extension."""
@@ -39,6 +67,7 @@ def organize_files(
     dry_run: bool = False,
     verbose: bool = False,
     categories: Dict[str, List[str]] = None,
+    ignore_patterns: List[str] = None,
 ) -> Dict[str, List[str]]:
     """
     Organize files in the source directory by type.
@@ -64,6 +93,11 @@ def organize_files(
 
     for item in source_path.iterdir():
         if item.is_file():
+            if should_ignore(item.name, ignore_patterns):
+                if verbose:
+                    print(f"  {item.name} -> ignored")
+                continue
+
             category = get_category(item.name, categories)
             dest_dir = source_path / category
             dest_path = dest_dir / item.name
