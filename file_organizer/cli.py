@@ -3,11 +3,24 @@
 import click
 
 
+CATEGORY_COLORS = {
+    "images": "cyan",
+    "documents": "green",
+    "code": "yellow",
+    "data": "blue",
+    "archives": "red",
+    "audio": "magenta",
+    "video": "white",
+    "other": "bright_black",
+}
+
+
 @click.command()
 @click.argument("source_dir")
 @click.option("--dry-run", is_flag=True, help="Preview changes without moving files")
 @click.option("--verbose", "-v", is_flag=True, help="Print detailed output")
-def main(source_dir: str, dry_run: bool, verbose: bool):
+@click.option("--color/--no-color", default=True, help="Enable/disable colored output")
+def main(source_dir: str, dry_run: bool, verbose: bool, color: bool):
     """Organize files in a directory by type."""
     from .organizer import organize_files
 
@@ -28,10 +41,15 @@ def main(source_dir: str, dry_run: bool, verbose: bool):
         return
 
     total = sum(len(files) for files in result.values())
-    click.echo(f"\n{'Would organize' if dry_run else 'Organized'} {total} files:")
+    action = "Would organize" if dry_run else "Organized"
+    click.echo(f"\n{action} {total} files:")
 
     for category, files in sorted(result.items()):
-        click.echo(f"  {category}/ ({len(files)} files)")
+        count = len(files)
+        label = f"  {category}/ ({count} files)"
+        if color and category in CATEGORY_COLORS:
+            label = click.style(label, fg=CATEGORY_COLORS[category])
+        click.echo(label)
 
 
 if __name__ == "__main__":
