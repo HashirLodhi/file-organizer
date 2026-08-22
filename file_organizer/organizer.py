@@ -62,6 +62,16 @@ def get_category(filename: str, categories: Dict[str, List[str]] = None) -> str:
     return "other"
 
 
+def get_file_size_str(filepath: Path) -> str:
+    """Get human-readable file size."""
+    size = filepath.stat().st_size
+    for unit in ["B", "KB", "MB", "GB"]:
+        if size < 1024:
+            return f"{size:.1f}{unit}"
+        size /= 1024
+    return f"{size:.1f}TB"
+
+
 def organize_files(
     source_dir: str,
     dry_run: bool = False,
@@ -103,7 +113,8 @@ def organize_files(
             dest_path = dest_dir / item.name
 
             if verbose:
-                print(f"  {item.name} -> {category}/")
+                size_str = get_file_size_str(item)
+                print(f"  {item.name} ({size_str}) -> {category}/")
 
             if not dry_run:
                 dest_dir.mkdir(exist_ok=True)
@@ -244,7 +255,8 @@ def organize_by_date(
             dest_path = dest_dir / item.name
 
             if verbose:
-                print(f"  {item.name} -> {date_folder}/")
+                size_str = get_file_size_str(item)
+                print(f"  {item.name} ({size_str}) -> {date_folder}/")
 
             if not dry_run:
                 dest_dir.mkdir(parents=True, exist_ok=True)
