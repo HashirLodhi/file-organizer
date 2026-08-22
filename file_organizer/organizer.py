@@ -19,6 +19,34 @@ DEFAULT_CATEGORIES: Dict[str, List[str]] = {
     "video": [".mp4", ".avi", ".mkv", ".mov", ".wmv"],
 }
 
+DEFAULT_IGNORE_PATTERNS = [
+    ".git",
+    "__pycache__",
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",
+]
+
+
+def should_ignore(filename: str, ignore_patterns: List[str] = None) -> bool:
+    """
+    Check if a file should be ignored based on patterns.
+
+    Args:
+        filename: Name of the file to check
+        ignore_patterns: List of patterns to ignore
+
+    Returns:
+        True if the file should be ignored
+    """
+    if ignore_patterns is None:
+        ignore_patterns = DEFAULT_IGNORE_PATTERNS
+
+    for pattern in ignore_patterns:
+        if filename == pattern or filename.endswith(f"/{pattern}"):
+            return True
+    return False
+
 
 def get_category(filename: str, categories: Dict[str, List[str]] = None) -> str:
     """Determine the category for a file based on its extension."""
@@ -34,11 +62,22 @@ def get_category(filename: str, categories: Dict[str, List[str]] = None) -> str:
     return "other"
 
 
+def get_file_size_str(filepath: Path) -> str:
+    """Get human-readable file size."""
+    size = filepath.stat().st_size
+    for unit in ["B", "KB", "MB", "GB"]:
+        if size < 1024:
+            return f"{size:.1f}{unit}"
+        size /= 1024
+    return f"{size:.1f}TB"
+
+
 def organize_files(
     source_dir: str,
     dry_run: bool = False,
     verbose: bool = False,
     categories: Dict[str, List[str]] = None,
+    ignore_patterns: List[str] = None,
 ) -> Dict[str, List[str]]:
     """
     Organize files in the source directory by type.
@@ -64,12 +103,18 @@ def organize_files(
 
     for item in source_path.iterdir():
         if item.is_file():
+            if should_ignore(item.name, ignore_patterns):
+                if verbose:
+                    print(f"  {item.name} -> ignored")
+                continue
+
             category = get_category(item.name, categories)
             dest_dir = source_path / category
             dest_path = dest_dir / item.name
 
             if verbose:
-                print(f"  {item.name} -> {category}/")
+                size_str = get_file_size_str(item)
+                print(f"  {item.name} ({size_str}) -> {category}/")
 
             if not dry_run:
                 dest_dir.mkdir(exist_ok=True)
@@ -210,7 +255,8 @@ def organize_by_date(
             dest_path = dest_dir / item.name
 
             if verbose:
-                print(f"  {item.name} -> {date_folder}/")
+                size_str = get_file_size_str(item)
+                print(f"  {item.name} ({size_str}) -> {date_folder}/")
 
             if not dry_run:
                 dest_dir.mkdir(parents=True, exist_ok=True)
