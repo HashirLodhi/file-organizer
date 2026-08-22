@@ -2,8 +2,9 @@
 
 import os
 import shutil
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 # Default file type categories
@@ -85,5 +86,82 @@ def organize_files(
             if category not in moved_files:
                 moved_files[category] = []
             moved_files[category].append(item.name)
+
+    return moved_files
+
+
+def get_date_folder(filepath: Path, date_format: str = "year-month") -> str:
+    """
+    Get the folder name based on file modification date.
+
+    Args:
+        filepath: Path to the file
+        date_format: Format for date folder ('year', 'year-month', or 'full')
+
+    Returns:
+        Folder name string
+    """
+    mtime = datetime.fromtimestamp(filepath.stat().st_mtime)
+
+    if date_format == "year":
+        return str(mtime.year)
+    elif date_format == "year-month":
+        return f"{mtime.year}/{mtime.month:02d}"
+    else:
+        return f"{mtime.year}/{mtime.month:02d}/{mtime.day:02d}"
+
+
+def organize_by_date(
+    source_dir: str,
+    dry_run: bool = False,
+    verbose: bool = False,
+    date_format: str = "year-month",
+) -> Dict[str, List[str]]:
+    """
+    Organize files in the source directory by modification date.
+
+    Args:
+        source_dir: Path to the directory to organize
+        dry_run: If True, only show what would be done
+        verbose: If True, print detailed output
+        date_format: Format for date folders ('year', 'year-month', or 'full')
+
+    Returns:
+        Dictionary mapping date folders to lists of moved files
+    """
+    source_path = Path(source_dir)
+
+    if not source_path.exists():
+        raise FileNotFoundError(f"Directory not found: {source_dir}")
+
+    if not source_path.is_dir():
+        raise NotADirectoryError(f"Not a directory: {source_dir}")
+
+    moved_files: Dict[str, List[str]] = {}
+
+    for item in source_path.iterdir():
+        if item.is_file():
+            date_folder = get_date_folder(item, date_format)
+            dest_dir = source_path / date_folder
+            dest_path = dest_dir / item.name
+
+            if verbose:
+                print(f"  {item.name} -> {date_folder}/")
+
+            if not dry_run:
+                dest_dir.mkdir(parents=True, exist_ok=True)
+
+                counter = 1
+                while dest_path.exists():
+                    stem = item.stem
+                    suffix = item.suffix
+                    dest_path = dest_dir / f"{stem}_{counter}{suffix}"
+                    counter += 1
+
+                shutil.move(str(item), str(dest_path))
+
+            if date_folder not in moved_files:
+                moved_files[date_folder] = []
+            moved_files[date_folder].append(item.name)
 
     return moved_files
