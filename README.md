@@ -5,7 +5,7 @@ A simple Python CLI tool to organize files by type, date, or custom rules.
 ## Installation
 
 ```bash
-pip install -e .
+pip install -r requirements.txt
 ```
 
 ## Usage
