@@ -22,9 +22,10 @@ CATEGORY_COLORS = {
 @click.option("--by-date", is_flag=True, help="Organize by modification date instead of type")
 @click.option("--date-format", type=click.Choice(["year", "year-month", "full"]), default="year-month", help="Date folder format")
 @click.option("--color/--no-color", default=True, help="Enable/disable colored output")
-def main(source_dir: str, dry_run: bool, verbose: bool, by_date: bool, date_format: str, color: bool):
+@click.option("--report", is_flag=True, help="Save a JSON report after organizing")
+def main(source_dir: str, dry_run: bool, verbose: bool, by_date: bool, date_format: str, color: bool, report: bool):
     """Organize files in a directory by type or date."""
-    from .organizer import organize_by_date, organize_files
+    from .organizer import generate_report, organize_by_date, organize_files, save_report
 
     if dry_run:
         click.echo("DRY RUN - No files will be moved\n")
@@ -55,6 +56,10 @@ def main(source_dir: str, dry_run: bool, verbose: bool, by_date: bool, date_form
         if color and category in CATEGORY_COLORS:
             label = click.style(label, fg=CATEGORY_COLORS[category])
         click.echo(label)
+
+    if report and not dry_run:
+        report_path = save_report(result, source_dir)
+        click.echo(f"\nReport saved to: {report_path}")
 
 
 if __name__ == "__main__":
