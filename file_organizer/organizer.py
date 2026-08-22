@@ -1,5 +1,6 @@
 """Core file organization logic."""
 
+import json
 import os
 import shutil
 from datetime import datetime
@@ -88,6 +89,69 @@ def organize_files(
             moved_files[category].append(item.name)
 
     return moved_files
+
+
+def generate_report(moved_files: Dict[str, List[str]], source_dir: str) -> str:
+    """
+    Generate a summary report of the organization.
+
+    Args:
+        moved_files: Dictionary mapping categories to file lists
+        source_dir: The directory that was organized
+
+    Returns:
+        Formatted report string
+    """
+    total_files = sum(len(files) for files in moved_files.values())
+    total_categories = len(moved_files)
+
+    lines = [
+        "=" * 50,
+        "FILE ORGANIZATION REPORT",
+        "=" * 50,
+        f"Directory: {source_dir}",
+        f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Total files: {total_files}",
+        f"Categories: {total_categories}",
+        "-" * 50,
+    ]
+
+    for category in sorted(moved_files.keys()):
+        files = moved_files[category]
+        lines.append(f"\n{category}/ ({len(files)} files):")
+        for f in sorted(files):
+            lines.append(f"  - {f}")
+
+    lines.append("=" * 50)
+    return "\n".join(lines)
+
+
+def save_report(moved_files: Dict[str, List[str]], source_dir: str, output_path: str = None) -> str:
+    """
+    Save organization report to a JSON file.
+
+    Args:
+        moved_files: Dictionary mapping categories to file lists
+        source_dir: The directory that was organized
+        output_path: Path to save the report (default: source_dir/report.json)
+
+    Returns:
+        Path to the saved report
+    """
+    if output_path is None:
+        output_path = os.path.join(source_dir, "report.json")
+
+    report = {
+        "timestamp": datetime.now().isoformat(),
+        "source_directory": source_dir,
+        "total_files": sum(len(files) for files in moved_files.values()),
+        "categories": {cat: files for cat, files in moved_files.items()},
+    }
+
+    with open(output_path, "w") as f:
+        json.dump(report, f, indent=2)
+
+    return output_path
 
 
 def get_date_folder(filepath: Path, date_format: str = "year-month") -> str:
